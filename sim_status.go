@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -13,9 +13,16 @@ func CheckSimStatus(username string) error {
 		return err
 	}
 
+	for _, row := range cur_running {
+		fmt.Println(row)
+	}
+
 	_, job_states := GetJobNamesAndStates(&cur_running, username)
 
 	state_counts := make(map[string]int)
+
+	state_counts["RUNNING"] = 0
+	state_counts["PENDING"] = 0
 
 	for _, state := range job_states {
 		state_counts[state] = state_counts[state] + 1
@@ -35,12 +42,12 @@ func CheckSimStatus(username string) error {
 }
 
 func GetAllCurrentJobs() ([][]string, error) {
-	cur_running_raw, err := os.ReadFile("sq_out.txt")
+	cur_running_bytes, err := exec.Command("squeue").Output()
 	if err != nil {
 		return nil, err
 	}
 
-	cur_running_string := string(cur_running_raw)
+	cur_running_string := strings.TrimSpace(string(cur_running_bytes))
 
 	cur_running := make([][]string, 0, strings.Count(cur_running_string, "\n")+1)
 
