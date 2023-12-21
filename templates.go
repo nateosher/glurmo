@@ -2,17 +2,20 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
 func GetScriptTemplate(sim_dir string) (template.Template, error) {
-	script_bytes, err := os.ReadFile(sim_dir + "/.slurminator/script_template")
+	script_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".slurminator", "script_template"))
 	if err != nil {
 		return template.Template{}, err
 	}
 
 	script_string := string(script_bytes)
 
+	// TODO: check if script contains {{.results_path}} and throw
+	// warning if not
 	script_template := template.New("Script Template")
 	script_template, err = script_template.Parse(script_string)
 	if err != nil {
@@ -23,7 +26,7 @@ func GetScriptTemplate(sim_dir string) (template.Template, error) {
 }
 
 func GetSlurmTemplate(sim_dir string) (template.Template, error) {
-	slurm_bytes, err := os.ReadFile(sim_dir + "/.slurminator/slurm_template")
+	slurm_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".slurminator", "slurm_template"))
 	if err != nil {
 		return template.Template{}, err
 	}

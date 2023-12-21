@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -50,12 +51,7 @@ func GetSettingsDir(sim_dir string) (string, error) {
 		return "", errorString{s: "could not find settings directory (.slurminator) in directory " + sim_dir}
 	}
 
-	settings_dir := sim_dir
-	if settings_dir[len(settings_dir)-1] != os.PathSeparator {
-		settings_dir += string(os.PathSeparator)
-	}
-
-	settings_dir += ".slurminator"
+	settings_dir := filepath.Join(sim_dir, ".slurminator")
 
 	return settings_dir, nil
 }
@@ -79,12 +75,7 @@ func GetSettingsFile(settings_dir string) (string, error) {
 		return "", errorString{s: "could not find settings file (.slurminator) in directory " + settings_dir}
 	}
 
-	settings_file := settings_dir
-	if settings_file[len(settings_file)-1] != '/' {
-		settings_file += "/"
-	}
-
-	settings_file += "settings.toml"
+	settings_file := filepath.Join(settings_dir, "settings.toml")
 
 	return settings_file, nil
 }
@@ -135,6 +126,16 @@ func ParseSettingsDict(settings_file string) (map[string]string, map[string]stri
 
 		(*cur_dict)[key] = val
 
+	}
+
+	if len(script_dict) == 0 {
+		return nil, nil,
+			errorString{s: "could not find `script` settings in settings.toml"}
+	}
+
+	if len(slurm_dict) == 0 {
+		return nil, nil,
+			errorString{s: "could not find `slurm` settings in settings.toml"}
 	}
 
 	return script_dict, slurm_dict, nil
