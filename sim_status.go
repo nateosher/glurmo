@@ -13,10 +13,6 @@ func CheckSimStatus(username string) error {
 		return err
 	}
 
-	for _, row := range cur_running {
-		fmt.Println(row)
-	}
-
 	_, job_states := GetJobNamesAndStates(&cur_running, username)
 
 	state_counts := make(map[string]int)
