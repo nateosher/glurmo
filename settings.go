@@ -1,144 +1,97 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-func GetSettingsMap(sim_dir string) (map[string]string, map[string]string, error) {
-	settings_dir, err := GetSettingsDir(sim_dir)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	settings_file, err := GetSettingsFile(settings_dir)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	script_dict, slurm_dict, err := ParseSettingsDict(settings_file)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = CheckSettingsDicts(script_dict, slurm_dict)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return script_dict, slurm_dict, nil
-
+type SettingsMap struct {
+	General map[string]string      `json:"general"`
+	Script  map[string]string      `json:"script"`
+	Slurm   map[string]interface{} `json:"slurm"`
 }
 
-func GetSettingsDir(sim_dir string) (string, error) {
-	sim_dir_files, err := os.ReadDir(sim_dir)
+func GetSettings(simDir string) (SettingsMap, error) {
+	var settingsMap SettingsMap
+	settingsDir, err := GetSettingsDir(simDir)
+	if err != nil {
+		return settingsMap, err
+	}
+
+	settingsFile, err := GetSettingsFile(settingsDir)
+	if err != nil {
+		return settingsMap, err
+	}
+
+	settingsMap, err = GetSettingsMap(settingsFile)
+	if err != nil {
+		return settingsMap, err
+	}
+
+	return settingsMap, nil
+}
+
+func GetSettingsDir(simDir string) (string, error) {
+	simDirFiles, err := os.ReadDir(simDir)
 	if err != nil {
 		return "", err
 	}
 
-	has_settings_dir := false
+	hasSettingsDir := false
 
-	for _, f := range sim_dir_files {
-		has_settings_dir = has_settings_dir || (f.Name() == ".slurminator" && f.IsDir())
-		if has_settings_dir {
+	for _, f := range simDirFiles {
+		hasSettingsDir = hasSettingsDir || (f.Name() == ".glurmo" && f.IsDir())
+		if hasSettingsDir {
 			break
 		}
 	}
 
-	if !has_settings_dir {
-		return "", errorString{s: "could not find settings directory (.slurminator) in directory " + sim_dir}
+	if !hasSettingsDir {
+		return "", errorString{s: "could not find settings directory (.glurmo) in directory " + simDir}
 	}
 
-	settings_dir := filepath.Join(sim_dir, ".slurminator")
+	settingsDir := filepath.Join(simDir, ".glurmo")
 
-	return settings_dir, nil
+	return settingsDir, nil
 }
 
-func GetSettingsFile(settings_dir string) (string, error) {
-	settings_dir_files, err := os.ReadDir(settings_dir)
+func GetSettingsFile(settingsDir string) (string, error) {
+	settingsDirFiles, err := os.ReadDir(settingsDir)
 	if err != nil {
 		return "", err
 	}
 
-	has_settings_file := false
+	hasSettingsFile := false
 
-	for _, f := range settings_dir_files {
-		has_settings_file = has_settings_file || (f.Name() == "settings.toml" && !f.IsDir())
-		if has_settings_file {
+	for _, f := range settingsDirFiles {
+		hasSettingsFile = hasSettingsFile || (f.Name() == "settings.json" && !f.IsDir())
+		if hasSettingsFile {
 			break
 		}
 	}
 
-	if !has_settings_file {
-		return "", errorString{s: "could not find settings file (.slurminator) in directory " + settings_dir}
+	if !hasSettingsFile {
+		return "", errorString{s: "could not find settings file (settings.json) in directory " + settingsDir}
 	}
 
-	settings_file := filepath.Join(settings_dir, "settings.toml")
+	settingsFile := filepath.Join(settingsDir, "settings.json")
 
-	return settings_file, nil
+	return settingsFile, nil
 }
 
-func ParseSettingsDict(settings_file string) (map[string]string, map[string]string, error) {
-	raw_bytes, err := os.ReadFile(settings_file)
+func GetSettingsMap(settingsFile string) (SettingsMap, error) {
+	var settingsMap SettingsMap
+	rawBytes, err := os.ReadFile(settingsFile)
 	if err != nil {
-		return nil, nil, err
+		return settingsMap, err
+	}
+	err = json.Unmarshal(rawBytes, &settingsMap)
+	if err != nil {
+		return settingsMap, err
 	}
 
-	settings_str := string(raw_bytes)
-	settings_str = strings.ReplaceAll(settings_str, "\"", "")
-	lines := strings.Split(strings.ReplaceAll(settings_str, "\r\n", "\n"), "\n")
-
-	script_dict := make(map[string]string)
-	slurm_dict := make(map[string]string)
-	var cur_dict *map[string]string
-
-	for i, l := range lines {
-		if comment_index := strings.IndexByte(l, '#'); comment_index > -1 {
-			l = l[:comment_index]
-		}
-		if l == "" {
-			continue
-		}
-
-		split_line := strings.Split(l, "=")
-		if len(split_line) == 1 && split_line[0] == "[script]" {
-			cur_dict = &script_dict
-			continue
-		} else if len(split_line) == 1 && split_line[0] == "[slurm]" {
-			cur_dict = &slurm_dict
-			continue
-		} else if len(split_line) == 1 {
-			return nil, nil,
-				errorString{s: "malformed settings file at line at line " +
-					fmt.Sprint(i+1) + "\n",
-				}
-		}
-
-		key := strings.TrimSpace(split_line[0])
-		val := strings.TrimSpace(split_line[1])
-
-		if _, has_key := (*cur_dict)[key]; has_key {
-			return nil, nil,
-				errorString{s: "settings contain repeated key: " + key}
-		}
-
-		(*cur_dict)[key] = val
-
-	}
-
-	if len(script_dict) == 0 {
-		return nil, nil,
-			errorString{s: "could not find `script` settings in settings.toml"}
-	}
-
-	if len(slurm_dict) == 0 {
-		return nil, nil,
-			errorString{s: "could not find `slurm` settings in settings.toml"}
-	}
-
-	return script_dict, slurm_dict, nil
+	return settingsMap, nil
 }
 
 func CheckSettingsDicts(script_dict map[string]string, slurm_dict map[string]string) error {

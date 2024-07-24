@@ -7,7 +7,7 @@ import (
 )
 
 func GetScriptTemplate(sim_dir string) (template.Template, error) {
-	script_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".slurminator", "script_template"))
+	script_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".glurmo", "script_template"))
 	if err != nil {
 		return template.Template{}, err
 	}
@@ -26,7 +26,7 @@ func GetScriptTemplate(sim_dir string) (template.Template, error) {
 }
 
 func GetSlurmTemplate(sim_dir string) (template.Template, error) {
-	slurm_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".slurminator", "slurm_template"))
+	slurm_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".glurmo", "slurm_template"))
 	if err != nil {
 		return template.Template{}, err
 	}
