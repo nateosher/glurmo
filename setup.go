@@ -196,7 +196,7 @@ func SlurmSetup(sim_dir string, slurm_dict map[string]interface{}, generalSettin
 	for i := 0; i < n_sims; i++ {
 		slurmStringDict["index"] = fmt.Sprint(i)
 		slurmStringDict["path_to_script"] = filepath.Join(sim_dir, "slurm", "slurm_"+slurmStringDict["index"])
-		slurmStringDict["job_id"] = slurmStringDict["simulation_id"] + "___" + slurmStringDict["index"]
+		slurmStringDict["job_id"] = slurmStringDict["id"] + "___" + slurmStringDict["index"]
 		slurmStringDict["output_path"] = filepath.Join(sim_dir, "slurm_out", "output___"+slurmStringDict["index"])
 		slurmStringDict["error_path"] = filepath.Join(sim_dir, "slurm_errors", "error___"+slurmStringDict["index"])
 
