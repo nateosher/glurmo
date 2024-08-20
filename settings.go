@@ -6,12 +6,15 @@ import (
 	"path/filepath"
 )
 
+// A struct representing the settings file for a given
+// simulation.
 type SettingsMap struct {
 	General map[string]string      `json:"general"`
 	Script  map[string]string      `json:"script"`
 	Slurm   map[string]interface{} `json:"slurm"`
 }
 
+// Retrieves the `SettingsMap` for a given simulation.
 func GetSettings(simDir string) (SettingsMap, error) {
 	var settingsMap SettingsMap
 	settingsDir, err := GetSettingsDir(simDir)
@@ -32,6 +35,9 @@ func GetSettings(simDir string) (SettingsMap, error) {
 	return settingsMap, nil
 }
 
+// Given a path to a simulation `simDir`, returns the path to the
+// .glurmo subdirectory. If there is no .glurmo subdirectory,
+// returns an error.
 func GetSettingsDir(simDir string) (string, error) {
 	simDirFiles, err := os.ReadDir(simDir)
 	if err != nil {
@@ -56,6 +62,8 @@ func GetSettingsDir(simDir string) (string, error) {
 	return settingsDir, nil
 }
 
+// Given a path to a simulation `simDir`, returns the path
+// to the settings file `simDir/.glurmo/settings.json`
 func GetSettingsFile(settingsDir string) (string, error) {
 	settingsDirFiles, err := os.ReadDir(settingsDir)
 	if err != nil {
@@ -80,6 +88,8 @@ func GetSettingsFile(settingsDir string) (string, error) {
 	return settingsFile, nil
 }
 
+// Given the path to a settings file `settings.json`, reads it
+// in as a SettingsMap struct
 func GetSettingsMap(settingsFile string) (SettingsMap, error) {
 	var settingsMap SettingsMap
 	rawBytes, err := os.ReadFile(settingsFile)
@@ -94,6 +104,7 @@ func GetSettingsMap(settingsFile string) (SettingsMap, error) {
 	return settingsMap, nil
 }
 
+// Ensures that the SettingsMap is well formed
 func CheckSettingsDicts(script_dict map[string]string, slurm_dict map[string]string) error {
 	// Script must have extension
 	if _, extension_set := script_dict["extension"]; !extension_set {

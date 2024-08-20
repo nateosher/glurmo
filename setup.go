@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// Given the path to a glurmo directory, a SettingsMap, and an indication of whether
+// or not to check if the directory is empty, sets up the infrastructure of the
+// glurmo directory
 func SetupDir(sim_dir string, settings_map SettingsMap, checkEmpty bool) error {
 	if checkEmpty {
 		isEmpty, err := CheckIfEmpty(sim_dir)
@@ -100,6 +103,8 @@ Proceeding with setup may overwrite some or all of these contents. Would you lik
 	return nil
 }
 
+// Checks if the given directory is empty (aside from a
+// .glurmo subdirectory)
 func CheckIfEmpty(sim_dir string) (bool, error) {
 	sim_dir_files, err := os.ReadDir(sim_dir)
 	if err != nil {
@@ -113,6 +118,7 @@ func CheckIfEmpty(sim_dir string) (bool, error) {
 	return true, nil
 }
 
+// Sets up the script subdirectory of `sim_dir` directory
 func ScriptSetup(sim_dir string, script_dict map[string]string, generalSettings map[string]string) error {
 	script_template, err := GetScriptTemplate(sim_dir)
 	if err != nil {
@@ -161,6 +167,7 @@ func ScriptSetup(sim_dir string, script_dict map[string]string, generalSettings 
 	return nil
 }
 
+// Sets up slurm subdirectory of `sim_dir`
 func SlurmSetup(sim_dir string, slurm_dict map[string]interface{}, generalSettings map[string]string) error {
 	slurmStringDict, err := InterfaceToStringMap(slurm_dict)
 	if err != nil {
@@ -224,6 +231,8 @@ func SlurmSetup(sim_dir string, slurm_dict map[string]interface{}, generalSettin
 	return nil
 }
 
+// Cleans up glurmo directory in case of an error
+// TODO: clean up other directories as well
 func CleanupOnErr(sim_dir string) error {
 	err := os.RemoveAll(filepath.Join(sim_dir, "scripts"))
 	if err != nil {
@@ -236,6 +245,9 @@ func CleanupOnErr(sim_dir string) error {
 	return nil
 }
 
+// Determines which variables in the simulation settings are
+// list variables, i.e. will create their own glurmo subdirectories
+// recursively.
 func GetListVars(settings map[string]string) map[string]string {
 	list_vars := make(map[string]string)
 	for k, v := range settings {
@@ -246,6 +258,8 @@ func GetListVars(settings map[string]string) map[string]string {
 	return list_vars
 }
 
+// Given a variable list of the form `@[v_1, ..., v_n]`,
+// returns a slice [v_1, v_n]
 func UnpackList(s string) ([]string, error) {
 	if s[0:2] != "@[" || s[len(s)-1] != ']' {
 		return nil, errorString{"malformed list - lists must be enclosed by @[ ... ]"}

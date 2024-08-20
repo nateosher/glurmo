@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
+// Submits `nJobsToSubmit` jobs in `simDir`. If `simDir` is a "meta"
+// glurmo directory, i.e. does not actually have simulations but has
+// subdirectories that do, runs `nJobsToSubmit` in all glurmo
+// subdirectories.
 func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 	fmt.Println("submitting in: ", simDir)
 	nSubmitted := 0
@@ -29,7 +32,7 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 			}
 			submittedJobs, err := RunJobs(filepath.Join(simDir, subdir), nJobsToSubmit)
 			if err != nil {
-				fmt.Printf("Failed to submit jobs in directory %s: %s\n", filepath.Join(simDir, subdir), err)
+				return fmt.Printf("Failed to submit jobs in directory %s: %s\n", filepath.Join(simDir, subdir), err)
 			}
 			nSubmitted += submittedJobs
 		}
@@ -41,7 +44,7 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 			return -1, errorString{fmt.Sprintf("failed to submit jobs in directory `%s`: %s", simDir, err)}
 		}
 		// submit jobs normally
-		_, submittedMap, err := GetNumberSubmitted(&settingsMap)
+		_, submittedMap, err := GetNumberSubmitted(settingsMap.General["id"])
 		if err != nil {
 			return 0, err
 		}
@@ -78,6 +81,10 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 
 }
 
+// Given the name of a simulation, retrieves the number of
+// completed jobs (returned as an int) and a map[int]bool
+// that indicates which numbers have been submitted and
+// which have not
 func GetNumberCompleted(simDir string, resultExtension string) (int, map[int]bool, error) {
 	resultsDir := filepath.Join(simDir, "results")
 	completedSlice, err := os.ReadDir(resultsDir)
@@ -98,51 +105,4 @@ func GetNumberCompleted(simDir string, resultExtension string) (int, map[int]boo
 	}
 
 	return len(completedMap), completedMap, nil
-}
-
-func GetNumberSubmitted(settingsMap *SettingsMap) (int, map[int]bool, error) {
-	simName := settingsMap.General["id"]
-	currentSubmitted, err := GetCurrentSubmitted(settingsMap.General["id"])
-	submittedMap := make(map[int]bool, len(currentSubmitted))
-	if err != nil {
-		return 0, nil, errorString{fmt.Sprintf("could not retrieve current slurm jobs: %s", err.Error())}
-	}
-	fmt.Println("submitted: ", currentSubmitted)
-	for _, job := range currentSubmitted {
-		if strings.HasPrefix(job.JobName, simName) {
-			curJobNum, err := GetJobNumber(job.JobName)
-			if err != nil {
-				return -1, nil, errorString{fmt.Sprintf("could not retrieve current slurm jobs: %s", err.Error())}
-			}
-			submittedMap[curJobNum] = true
-		}
-	}
-	return len(submittedMap), submittedMap, nil
-}
-
-// Gets number for files with name of format [prefix]___[#][.extension]
-func GetFileNumber(fname string) (int, error) {
-	suffix := strings.Split(fname, "___")[1]
-	numericRunes := map[byte]bool{'0': true,
-		'1': true,
-		'2': true,
-		'3': true,
-		'4': true,
-		'5': true,
-		'6': true,
-		'7': true,
-		'8': true,
-		'9': true}
-
-	takeUntil := 0
-	for takeUntil <= len(suffix) && numericRunes[suffix[takeUntil]] {
-		takeUntil++
-	}
-
-	fileNumber, err := strconv.Atoi(suffix[0:takeUntil])
-	if err != nil {
-		return -1, errorString{fmt.Sprintf("could not parse number of file %s: %s", fname, err)}
-	}
-
-	return fileNumber, nil
 }
