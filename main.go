@@ -106,47 +106,11 @@ func main() {
 	fmt.Println("subdirs: ", simSubdirs)
 
 	if *runFlag > 0 {
-		nSubmitted, err := RunJobs(sim_dir, *runFlag, &settings_map)
+		nSubmitted, err := RunJobs(sim_dir, *runFlag)
 		if err != nil {
 			fmt.Printf("ERROR: %s\n", err)
 			os.Exit(1)
 		}
 		fmt.Printf("Successfully submitted %d jobs\n", nSubmitted)
 	}
-
-	// next_action_string, err := input.ReadString('\n')
-	// if err != nil {
-	// 	fmt.Printf("ERROR: could not read line: %s", err)
-	// 	return
-	// }
-
-	// next_action := strings.Split(strings.TrimSpace(next_action_string), " ")
-
-	// switch next_action[0] {
-	// case "s":
-	// 	err := RunSetup(next_action, sim_dir, script_dict, slurm_dict)
-	// 	if err != nil {
-	// 		fmt.Printf("ERROR: %s", err)
-	// 		err = CleanupOnErr(sim_dir)
-	// 	}
-	// 	if err != nil {
-	// 		fmt.Println("ERROR: could not remove `scripts` " +
-	// 			"and `slurm` directories or contents; please " +
-	// 			"remove manually")
-	// 	}
-	// case "t":
-	// 	// TODO: get status of simulations currently running
-	// 	err := CheckSimStatus(username)
-	// 	if err != nil {
-	// 		fmt.Printf("ERROR: could not check simulation status: %s\n", err)
-	// 	}
-	// case "r":
-	// 	script_dict, slurm_dict, err = GetSettingsMap(sim_dir)
-	// 	if err != nil {
-	// 		fmt.Printf("ERROR: could not reload settings: %s\n", err)
-	// 		return
-	// 	}
-	// default:
-	// 	fmt.Printf("Unrecognized command: %s\n", next_action[0])
-	// }
 }
