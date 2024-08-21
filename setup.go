@@ -15,71 +15,75 @@ import (
 // Given the path to a glurmo directory, a SettingsMap, and an indication of whether
 // or not to check if the directory is empty, sets up the infrastructure of the
 // glurmo directory
-func SetupDir(sim_dir string, settings_map SettingsMap, checkEmpty bool) error {
+func SetupDir(simDir string, settingsMap SettingsMap, checkEmpty bool) error {
 	if checkEmpty {
-		isEmpty, err := CheckIfEmpty(sim_dir)
+		isEmpty, contents, err := CheckIfEmpty(simDir)
 		if err != nil {
 			return errorString{fmt.Sprintf("could not complete setup: %s", err)}
 		}
 
 		if !isEmpty {
-			fmt.Printf(`The current directory ("%s") has contents other than the .glurmo directory.
-Proceeding with setup may overwrite some or all of these contents. Would you like to proceed anyway? (y/n): `, sim_dir)
+			fmt.Printf("The current directory (\"%s\") has contents other than the .glurmo directory.\n", simDir)
+			fmt.Println("Specifically, it contains the following files or directories:")
+			for _, entry := range contents {
+				fmt.Println(entry)
+			}
+			fmt.Printf("Proceeding with setup may overwrite some or all of these contents. Would you like to proceed anyway? (y/n): ")
 			reader := bufio.NewReader(os.Stdin)
-			next_action_string, err := reader.ReadString('\n')
+			nextActionString, err := reader.ReadString('\n')
 			if err != nil {
 				return errorString{fmt.Sprintf("could not read user selection: %s\n", err)}
 			}
 
-			if next_action_string != "y\n" {
+			if nextActionString != "y\n" {
 				return errorString{fmt.Sprintf("setup was cancelled by user")}
 			}
 		}
 	}
 
 	// TODO: get "list" variables
-	list_variables := GetListVars(settings_map.Script)
-	if first_variable, non_empty := FirstKey(list_variables); non_empty {
-		variableValues, err := UnpackList(list_variables[first_variable])
+	listVariables := GetListVars(settingsMap.Script)
+	if firstVariable, nonEmpty := FirstKey(listVariables); nonEmpty {
+		variableValues, err := UnpackList(listVariables[firstVariable])
 		if err != nil {
 			return errorString{fmt.Sprintf("could not parse script settings: %s", err)}
 		}
 		if len(variableValues) == 0 {
-			return errorString{fmt.Sprintf("script variable '%s' contains an empty list", first_variable)}
+			return errorString{fmt.Sprintf("script variable '%s' contains an empty list", firstVariable)}
 		}
 
 		dirsToMake := variableValues
 
 		// TODO: cleanup `dirsToMake` on error
 		for i := range dirsToMake {
-			new_settings := DeepCopySettings(settings_map)
-			new_settings.Script[first_variable] = variableValues[i]
-			new_settings.General["id"] += "_" + variableValues[i]
+			newSettings := DeepCopySettings(settingsMap)
+			newSettings.Script[firstVariable] = variableValues[i]
+			newSettings.General["id"] += "_" + variableValues[i]
 
-			dirsToMake[i] = filepath.Join(sim_dir, fmt.Sprintf("%s_%s", first_variable, variableValues[i]))
+			dirsToMake[i] = filepath.Join(simDir, fmt.Sprintf("%s_%s", firstVariable, variableValues[i]))
 			RemoveIfExists(dirsToMake[i])
 			os.Mkdir(dirsToMake[i], 0700)
 			os.Mkdir(filepath.Join(dirsToMake[i], ".glurmo"), 0700)
 
-			CopyFile(filepath.Join(sim_dir, ".glurmo", "script_template"),
+			CopyFile(filepath.Join(simDir, ".glurmo", "script_template"),
 				filepath.Join(dirsToMake[i], ".glurmo", "script_template"))
-			CopyFile(filepath.Join(sim_dir, ".glurmo", "slurm_template"),
+			CopyFile(filepath.Join(simDir, ".glurmo", "slurm_template"),
 				filepath.Join(dirsToMake[i], ".glurmo", "slurm_template"))
 
-			new_settings_json, err := json.MarshalIndent(new_settings, "", "\t")
+			newSettingsJSON, err := json.MarshalIndent(newSettings, "", "\t")
 			if err != nil {
 				return err
 			}
 			os.WriteFile(filepath.Join(dirsToMake[i], ".glurmo", "settings.json"),
-				new_settings_json, 0700)
+				newSettingsJSON, 0700)
 
-			fmt.Println(dirsToMake[i])
-			err = SetupDir(dirsToMake[i], new_settings, false)
+			fmt.Println("Creating ", dirsToMake[i], "...")
+			err = SetupDir(dirsToMake[i], newSettings, false)
 			if err != nil {
 				// TODO: cleanup directories
 				cleanupErr := RemoveAllSlice(dirsToMake)
 				if cleanupErr != nil {
-					fmt.Printf("WARNING: could not clean up directory %s: %s", sim_dir, cleanupErr)
+					fmt.Printf("WARNING: could not clean up directory %s: %s", simDir, cleanupErr)
 				}
 				return err
 			}
@@ -87,11 +91,11 @@ Proceeding with setup may overwrite some or all of these contents. Would you lik
 	} else {
 		// TODO: cleanup dirs on error
 		// No list variables, just set up as single directory
-		err := ScriptSetup(sim_dir, settings_map.Script, settings_map.General)
+		err := ScriptSetup(simDir, settingsMap.Script, settingsMap.General)
 		if err != nil {
 			return err
 		}
-		err = SlurmSetup(sim_dir, settings_map.Slurm, settings_map.General)
+		err = SlurmSetup(simDir, settingsMap.Slurm, settingsMap.General)
 		if err != nil {
 			return err
 		}
@@ -105,59 +109,65 @@ Proceeding with setup may overwrite some or all of these contents. Would you lik
 
 // Checks if the given directory is empty (aside from a
 // .glurmo subdirectory)
-func CheckIfEmpty(sim_dir string) (bool, error) {
-	sim_dir_files, err := os.ReadDir(sim_dir)
+func CheckIfEmpty(simDir string) (bool, []string, error) {
+	simDirFiles, err := os.ReadDir(simDir)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	fmt.Println(sim_dir_files)
 
-	if len(sim_dir_files) != 1 || sim_dir_files[0].Name() != ".glurmo" {
-		return false, nil
+	simDirFileStrings := make([]string, 0, len(simDirFiles))
+	for _, dirEntry := range simDirFiles {
+		if dirEntry.Name() != ".glurmo" {
+			simDirFileStrings = append(simDirFileStrings, dirEntry.Name())
+		}
 	}
-	return true, nil
+
+	if len(simDirFiles) != 0 {
+		return false, simDirFileStrings, nil
+	}
+	return true, nil, nil
 }
 
-// Sets up the script subdirectory of `sim_dir` directory
-func ScriptSetup(sim_dir string, script_dict map[string]string, generalSettings map[string]string) error {
-	script_template, err := GetScriptTemplate(sim_dir)
+// Sets up the script subdirectory of `simDir` directory
+func ScriptSetup(simDir string, scriptDict map[string]string, generalSettings map[string]string) error {
+	scriptTemplate, err := GetScriptTemplate(simDir)
 	if err != nil {
 		return errorString{fmt.Sprintf("could not get script template: %s\n", err)}
 
 	}
-	script_template.Option("missingkey=error")
+	scriptTemplate.Option("missingkey=error")
 
-	os.Mkdir(filepath.Join(sim_dir, "scripts"), 0700)
-	os.Mkdir(filepath.Join(sim_dir, "results"), 0700)
+	os.Mkdir(filepath.Join(simDir, "scripts"), 0700)
+	os.Mkdir(filepath.Join(simDir, "results"), 0700)
 
 	nSimsString, hasKey := generalSettings["n_sims"]
 	if !hasKey {
-		return errorString{fmt.Sprintf("\"n_sims\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", sim_dir)}
+		return errorString{fmt.Sprintf("\"n_sims\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", simDir)}
 	}
-	n_sims, err := strconv.Atoi(nSimsString)
+	nSims, err := strconv.Atoi(nSimsString)
 	if err != nil {
 		return errorString{fmt.Sprintf("could not set up script files: %s", err)}
 	}
 
-	for i := 0; i < n_sims; i++ {
-		script_dict["index"] = fmt.Sprint(i)
-		script_dict["results_path"] = filepath.Join(sim_dir, "results", "results___"+script_dict["index"])
-		var final_script_raw bytes.Buffer
+	for i := 0; i < nSims; i++ {
+		scriptDict["index"] = fmt.Sprint(i)
+		scriptDict["results_path"] = filepath.Join(simDir, "results", "results___"+scriptDict["index"])
+		var finalScriptRaw bytes.Buffer
 
-		err = script_template.Execute(&final_script_raw, script_dict)
+		err = scriptTemplate.Execute(&finalScriptRaw, scriptDict)
 		if err != nil {
 			return errorString{fmt.Sprintf("could not populate script template: %s\n", err)}
 		}
 
-		current_script_string := final_script_raw.String()
+		currentScriptString := finalScriptRaw.String()
 
-		f, err := os.Create(filepath.Join(sim_dir, "scripts", "script_"+
-			script_dict["index"]+script_dict["script_extension"]))
+		f, err := os.Create(filepath.Join(simDir, "scripts", "script_"+
+			scriptDict["index"]+scriptDict["script_extension"]))
 		if err != nil {
 			return err
 		}
 
-		_, err = f.WriteString(current_script_string)
+		_, err = f.WriteString(currentScriptString)
 		if err != nil {
 			return err
 		}
@@ -167,61 +177,57 @@ func ScriptSetup(sim_dir string, script_dict map[string]string, generalSettings 
 	return nil
 }
 
-// Sets up slurm subdirectory of `sim_dir`
-func SlurmSetup(sim_dir string, slurm_dict map[string]interface{}, generalSettings map[string]string) error {
-	slurmStringDict, err := InterfaceToStringMap(slurm_dict)
-	if err != nil {
-		return errorString{fmt.Sprintf("could not set up \"slurm\" directory: %s", err)}
-	}
+// Sets up slurm subdirectory of `simDir`
+func SlurmSetup(simDir string, slurmDict map[string]string, generalSettings map[string]string) error {
 	simID, hasKey := generalSettings["id"]
 	if !hasKey {
-		return errorString{fmt.Sprintf("\"id\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", sim_dir)}
+		return errorString{fmt.Sprintf("\"id\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", simDir)}
 	}
 
-	slurmStringDict["id"] = simID
+	slurmDict["id"] = simID
 
-	slurm_template, err := GetSlurmTemplate(sim_dir)
+	slurmTemplate, err := GetSlurmTemplate(simDir)
 	if err != nil {
 		return errorString{fmt.Sprintf("could not get slurm template: %s\n", err)}
 	}
 
-	slurm_template.Option("missingkey=error")
+	slurmTemplate.Option("missingkey=error")
 
-	os.Mkdir(filepath.Join(sim_dir, "slurm"), 0700)
-	os.Mkdir(filepath.Join(sim_dir, "slurm_out"), 0700)
-	os.Mkdir(filepath.Join(sim_dir, "slurm_errors"), 0700)
+	os.Mkdir(filepath.Join(simDir, "slurm"), 0700)
+	os.Mkdir(filepath.Join(simDir, "slurm_out"), 0700)
+	os.Mkdir(filepath.Join(simDir, "slurm_errors"), 0700)
 
 	nSimsString, hasKey := generalSettings["n_sims"]
 	if !hasKey {
-		return errorString{fmt.Sprintf("\"n_sims\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", sim_dir)}
+		return errorString{fmt.Sprintf("\"n_sims\" must be specified in \"general\" section of \".glurmo/settings.json\" (%s)", simDir)}
 	}
-	n_sims, err := strconv.Atoi(nSimsString)
+	nSims, err := strconv.Atoi(nSimsString)
 	if err != nil {
 		return errorString{fmt.Sprintf("could not set up slurm files: %s", err)}
 	}
 
-	for i := 0; i < n_sims; i++ {
-		slurmStringDict["index"] = fmt.Sprint(i)
-		slurmStringDict["path_to_script"] = filepath.Join(sim_dir, "slurm", "slurm_"+slurmStringDict["index"])
-		slurmStringDict["job_id"] = slurmStringDict["id"] + "___" + slurmStringDict["index"]
-		slurmStringDict["output_path"] = filepath.Join(sim_dir, "slurm_out", "output___"+slurmStringDict["index"])
-		slurmStringDict["error_path"] = filepath.Join(sim_dir, "slurm_errors", "error___"+slurmStringDict["index"])
+	for i := 0; i < nSims; i++ {
+		slurmDict["index"] = fmt.Sprint(i)
+		slurmDict["path_to_script"] = filepath.Join(simDir, "slurm", "slurm_"+slurmDict["index"])
+		slurmDict["job_id"] = slurmDict["id"] + "___" + slurmDict["index"]
+		slurmDict["output_path"] = filepath.Join(simDir, "slurm_out", "output___"+slurmDict["index"])
+		slurmDict["error_path"] = filepath.Join(simDir, "slurm_errors", "error___"+slurmDict["index"])
 
-		var slurm_raw bytes.Buffer
+		var slurmRaw bytes.Buffer
 
-		err = slurm_template.Execute(&slurm_raw, slurmStringDict)
+		err = slurmTemplate.Execute(&slurmRaw, slurmDict)
 		if err != nil {
 			return errorString{fmt.Sprintf("could not populate slurm template: %s\n", err)}
 		}
 
-		slurm_string := slurm_raw.String()
+		slurmString := slurmRaw.String()
 
-		f, err := os.Create(slurmStringDict["path_to_script"])
+		f, err := os.Create(slurmDict["path_to_script"])
 		if err != nil {
 			return err
 		}
 
-		_, err = f.WriteString(slurm_string)
+		_, err = f.WriteString(slurmString)
 		if err != nil {
 			return err
 		}
@@ -233,12 +239,12 @@ func SlurmSetup(sim_dir string, slurm_dict map[string]interface{}, generalSettin
 
 // Cleans up glurmo directory in case of an error
 // TODO: clean up other directories as well
-func CleanupOnErr(sim_dir string) error {
-	err := os.RemoveAll(filepath.Join(sim_dir, "scripts"))
+func CleanupOnErr(simDir string) error {
+	err := os.RemoveAll(filepath.Join(simDir, "scripts"))
 	if err != nil {
 		return err
 	}
-	err = os.RemoveAll(filepath.Join(sim_dir, "slurm"))
+	err = os.RemoveAll(filepath.Join(simDir, "slurm"))
 	if err != nil {
 		return err
 	}
@@ -249,13 +255,13 @@ func CleanupOnErr(sim_dir string) error {
 // list variables, i.e. will create their own glurmo subdirectories
 // recursively.
 func GetListVars(settings map[string]string) map[string]string {
-	list_vars := make(map[string]string)
+	listVars := make(map[string]string)
 	for k, v := range settings {
 		if strings.HasPrefix(v, "@") {
-			list_vars[k] = v
+			listVars[k] = v
 		}
 	}
-	return list_vars
+	return listVars
 }
 
 // Given a variable list of the form `@[v_1, ..., v_n]`,
@@ -265,6 +271,6 @@ func UnpackList(s string) ([]string, error) {
 		return nil, errorString{"malformed list - lists must be enclosed by @[ ... ]"}
 	}
 	re := regexp.MustCompile(", *")
-	split_list := re.Split(s[2:len(s)-1], -1)
-	return split_list, nil
+	splitList := re.Split(s[2:len(s)-1], -1)
+	return splitList, nil
 }
