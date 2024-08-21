@@ -24,7 +24,7 @@ There's nothing that `glurmo` can do that job arrays can't. But having used both
 
 ## Readability
 
-`glurmo` uses a templating engine, so the resulting script and slurm templates are much more readable than if you rely in the index of a job array. 
+`glurmo` uses a templating engine, so the resulting script and slurm templates are much more readable than if you rely on the index of a job array. 
 
 ## Ease of use
 
