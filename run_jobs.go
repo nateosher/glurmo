@@ -9,7 +9,6 @@ import (
 )
 
 func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
-	fmt.Println("submitting in: ", simDir)
 	nSubmitted := 0
 	resultsExists, err := DirExists(filepath.Join(simDir, "results"))
 	if err != nil {
@@ -107,7 +106,6 @@ func GetNumberSubmitted(settingsMap *SettingsMap) (int, map[int]bool, error) {
 	if err != nil {
 		return 0, nil, errorString{fmt.Sprintf("could not retrieve current slurm jobs: %s", err.Error())}
 	}
-	fmt.Println("submitted: ", currentSubmitted)
 	for _, job := range currentSubmitted {
 		if strings.HasPrefix(job.JobName, simName) {
 			curJobNum, err := GetJobNumber(job.JobName)
