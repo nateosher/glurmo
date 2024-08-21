@@ -34,7 +34,7 @@ func DeepCopySettings(m SettingsMap) SettingsMap {
 	var copiedMap SettingsMap
 	copiedMap.Script = maps.Clone(m.Script)
 	copiedMap.General = maps.Clone(m.General)
-	copiedMap.Slurm = DeepCopySlurm(m.Slurm)
+	copiedMap.Slurm = maps.Clone(m.Slurm)
 
 	return copiedMap
 }
