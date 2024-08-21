@@ -60,7 +60,12 @@ func GetJobNumber(jobName string) (int, error) {
 
 // Gets number for files with name of format [prefix]___[#][.extension]
 func GetFileNumber(fname string) (int, error) {
-	suffix := strings.Split(fname, "___")[1]
+	splitFname := strings.Split(fname, "___")
+	if len(splitFname) != 2 {
+		return -1, errorString{fmt.Sprintf("invalid result file name: `%s`", fname)}
+	}
+	suffix := splitFname[1]
+
 	numericRunes := map[byte]bool{'0': true,
 		'1': true,
 		'2': true,
@@ -94,7 +99,7 @@ func GetNumberSubmitted(simName string) (int, map[int]bool, error) {
 	if err != nil {
 		return 0, nil, errorString{fmt.Sprintf("could not retrieve current slurm jobs: %s", err.Error())}
 	}
-	fmt.Println("submitted: ", currentSubmitted)
+
 	for _, job := range currentSubmitted {
 		if strings.HasPrefix(job.JobName, simName) {
 			curJobNum, err := GetJobNumber(job.JobName)

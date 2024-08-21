@@ -12,7 +12,6 @@ import (
 // subdirectories that do, runs `nJobsToSubmit` in all glurmo
 // subdirectories.
 func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
-	fmt.Println("submitting in: ", simDir)
 	nSubmitted := 0
 	resultsExists, err := DirExists(filepath.Join(simDir, "results"))
 	if err != nil {
@@ -32,7 +31,7 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 			}
 			submittedJobs, err := RunJobs(filepath.Join(simDir, subdir), nJobsToSubmit)
 			if err != nil {
-				return fmt.Printf("Failed to submit jobs in directory %s: %s\n", filepath.Join(simDir, subdir), err)
+				return nSubmitted, err
 			}
 			nSubmitted += submittedJobs
 		}
@@ -41,16 +40,16 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 	} else {
 		settingsMap, err := GetSettings(simDir)
 		if err != nil {
-			return -1, errorString{fmt.Sprintf("failed to submit jobs in directory `%s`: %s", simDir, err)}
+			return nSubmitted, errorString{fmt.Sprintf("failed to submit jobs in directory `%s`: %s", simDir, err)}
 		}
-		// submit jobs normally
+
 		_, submittedMap, err := GetNumberSubmitted(settingsMap.General["id"])
 		if err != nil {
-			return 0, err
+			return nSubmitted, err
 		}
 		_, completedMap, err := GetNumberCompleted(simDir, settingsMap.Script["result_extension"])
 		if err != nil {
-			return 0, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
+			return nSubmitted, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
 		}
 
 		slurmDir := filepath.Join(simDir, "slurm")
@@ -58,14 +57,14 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 		nJobs := len(jobSlice)
 
 		if err != nil {
-			return 0, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
+			return nSubmitted, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
 		}
 
-		curJob := 0
+		curJobNum := 0
 
-		for nSubmitted < nJobsToSubmit && curJob < nJobs {
-			if !completedMap[curJob] && !submittedMap[curJob] {
-				res, err := CommandString("sbatch", filepath.Join(slurmDir, "slurm_"+fmt.Sprint(curJob)))
+		for nSubmitted < nJobsToSubmit && curJobNum < nJobs {
+			if !completedMap[curJobNum] && !submittedMap[curJobNum] {
+				res, err := CommandString("sbatch", filepath.Join(slurmDir, "slurm_"+fmt.Sprint(curJobNum)))
 				if err != nil {
 					return 0, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
 				}
@@ -73,7 +72,7 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 					nSubmitted += 1
 				}
 			}
-			curJob += 1
+			curJobNum += 1
 		}
 
 		return nSubmitted, nil
@@ -81,10 +80,6 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 
 }
 
-// Given the name of a simulation, retrieves the number of
-// completed jobs (returned as an int) and a map[int]bool
-// that indicates which numbers have been submitted and
-// which have not
 func GetNumberCompleted(simDir string, resultExtension string) (int, map[int]bool, error) {
 	resultsDir := filepath.Join(simDir, "results")
 	completedSlice, err := os.ReadDir(resultsDir)

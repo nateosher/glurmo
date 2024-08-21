@@ -64,6 +64,11 @@ func main() {
 				*cancelStateFlag)
 			os.Exit(1)
 		}
-		CancelJobs(simDir, *cancelFlag, cancelStateMap)
+		nCancelled, err := CancelJobs(simDir, *cancelFlag, cancelStateMap)
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfually cancelled %d jobs\n", nCancelled)
 	}
 }
