@@ -20,6 +20,7 @@ func FirstKey[K string | int32 | int64 | float32 | float64, V any](m map[K]V) (K
 	return keySlice[0], true
 }
 
+// Returns a slice of the keys of a map
 func KeySlice[K comparable, V any](m map[K]V) []K {
 	keySlice := make([]K, 0, len(m))
 	for k := range m {
@@ -28,6 +29,7 @@ func KeySlice[K comparable, V any](m map[K]V) []K {
 	return keySlice
 }
 
+// Returns a deep copy of `m`, a SettingsMap struct
 func DeepCopySettings(m SettingsMap) SettingsMap {
 	var copiedMap SettingsMap
 	copiedMap.Script = maps.Clone(m.Script)
@@ -37,6 +39,9 @@ func DeepCopySettings(m SettingsMap) SettingsMap {
 	return copiedMap
 }
 
+// Returns a deep copy of the `Slurm` property of a `SettingsMap`
+// The arbitrary structure of the `Slurm` map will be used in
+// future versions of glurmo
 func DeepCopySlurm(m map[string]interface{}) map[string]interface{} {
 	copy := make(map[string]interface{}, len(m))
 	for k, v := range m {
@@ -49,6 +54,8 @@ func DeepCopySlurm(m map[string]interface{}) map[string]interface{} {
 	return copy
 }
 
+// Converts a `map[string]interface{}` to a `map[string]string`.
+// Fails if `m` contains non-string values
 func InterfaceToStringMap(m map[string]interface{}) (map[string]string, error) {
 	stringMap := make(map[string]string)
 	for k, v := range m {
