@@ -28,7 +28,7 @@ func SetupDir(simDir string, settingsMap SettingsMap, checkEmpty bool) error {
 			for _, entry := range contents {
 				fmt.Println(entry)
 			}
-			fmt.Println("Proceeding with setup may overwrite some or all of these contents. Would you like to proceed anyway? (y/n): ")
+			fmt.Printf("Proceeding with setup may overwrite some or all of these contents. Would you like to proceed anyway? (y/n): ")
 			reader := bufio.NewReader(os.Stdin)
 			nextActionString, err := reader.ReadString('\n')
 			if err != nil {
