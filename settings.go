@@ -9,9 +9,8 @@ import (
 // A struct representing the settings file for a given
 // simulation.
 type SettingsMap struct {
-	General map[string]string `json:"general"`
-	Script  map[string]string `json:"script"`
-	Slurm   map[string]string `json:"slurm"`
+	General   map[string]string `json:"general"`
+	Templates map[string]string `json:"templates"`
 }
 
 // Retrieves the `SettingsMap` for a given simulation.

@@ -32,9 +32,8 @@ func KeySlice[K comparable, V any](m map[K]V) []K {
 // Returns a deep copy of `m`, a SettingsMap struct
 func DeepCopySettings(m SettingsMap) SettingsMap {
 	var copiedMap SettingsMap
-	copiedMap.Script = maps.Clone(m.Script)
+	copiedMap.Templates = maps.Clone(m.Templates)
 	copiedMap.General = maps.Clone(m.General)
-	copiedMap.Slurm = maps.Clone(m.Slurm)
 
 	return copiedMap
 }
