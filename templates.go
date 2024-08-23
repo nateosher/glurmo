@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"text/template"
 )
 
@@ -26,6 +27,10 @@ func GetScriptTemplate(sim_dir string) (template.Template, error) {
 }
 
 func GetSlurmTemplate(sim_dir string) (template.Template, error) {
+	funcMap := template.FuncMap{
+		"atoi": strconv.Atoi,
+	}
+
 	slurm_bytes, err := os.ReadFile(filepath.Join(sim_dir, ".glurmo", "slurm_template"))
 	if err != nil {
 		return template.Template{}, err
@@ -33,7 +38,7 @@ func GetSlurmTemplate(sim_dir string) (template.Template, error) {
 
 	slurm_string := string(slurm_bytes)
 
-	slurm_template := template.New("Slurm Template")
+	slurm_template := template.New("Slurm Template").Funcs(funcMap)
 	slurm_template, err = slurm_template.Parse(slurm_string)
 	if err != nil {
 		return template.Template{}, err
