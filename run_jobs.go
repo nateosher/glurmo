@@ -47,7 +47,7 @@ func RunJobs(simDir string, nJobsToSubmit int) (int, error) {
 		if err != nil {
 			return nSubmitted, err
 		}
-		_, completedMap, err := GetNumberCompleted(simDir, settingsMap.Script["result_extension"])
+		_, completedMap, err := GetNumberCompleted(simDir, settingsMap.Templates["result_extension"])
 		if err != nil {
 			return nSubmitted, errorString{fmt.Sprintf("failed to submit jobs: %s", err)}
 		}

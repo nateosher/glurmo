@@ -36,13 +36,13 @@ func SetupDir(simDir string, settingsMap SettingsMap, checkEmpty bool) error {
 			}
 
 			if nextActionString != "y\n" {
-				return errorString{fmt.Sprintf("setup was cancelled by user")}
+				return errorString{"setup was cancelled by user"}
 			}
 		}
 	}
 
 	// TODO: get "list" variables
-	listVariables := GetListVars(settingsMap.Script)
+	listVariables := GetListVars(settingsMap.Templates)
 	if firstVariable, nonEmpty := FirstKey(listVariables); nonEmpty {
 		variableValues, err := UnpackList(listVariables[firstVariable])
 		if err != nil {
@@ -57,7 +57,7 @@ func SetupDir(simDir string, settingsMap SettingsMap, checkEmpty bool) error {
 		// TODO: cleanup `dirsToMake` on error
 		for i := range dirsToMake {
 			newSettings := DeepCopySettings(settingsMap)
-			newSettings.Script[firstVariable] = variableValues[i]
+			newSettings.Templates[firstVariable] = variableValues[i]
 			newSettings.General["id"] += "_" + variableValues[i]
 
 			dirsToMake[i] = filepath.Join(simDir, fmt.Sprintf("%s_%s", firstVariable, variableValues[i]))
@@ -91,11 +91,11 @@ func SetupDir(simDir string, settingsMap SettingsMap, checkEmpty bool) error {
 	} else {
 		// TODO: cleanup dirs on error
 		// No list variables, just set up as single directory
-		err := ScriptSetup(simDir, settingsMap.Script, settingsMap.General)
+		err := ScriptSetup(simDir, settingsMap.Templates, settingsMap.General)
 		if err != nil {
 			return err
 		}
-		err = SlurmSetup(simDir, settingsMap.Slurm, settingsMap.General)
+		err = SlurmSetup(simDir, settingsMap.Templates, settingsMap.General)
 		if err != nil {
 			return err
 		}
