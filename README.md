@@ -30,9 +30,9 @@ There's nothing that `glurmo` can do that job arrays can't. But having used both
 
 I am almost certainly biased here, but I find `glurmo` easier to use than job arrays, particularly when it comes to cancelling jobs. With `glurmo`, you can run a single command and cancel a certain number of jobs in specific states, without having to check job IDs. All you need to know is the base directory. You also don't need to keep track of which simulations you have run in an array or not.
 
-## Power (eventually)
+## Power
 
-`glurmo` uses templates to define `slurm` submission scripts. This means that in theory you can even set the resources requested by the simulation according to the settings themselves. However, I still need to decide on the interface for this. 
+`glurmo` uses [go templates](https://pkg.go.dev/text/template) to define `slurm` submission scripts. This means that you can even set the resources requested by the simulation according to the settings themselves. So not only can you define an arbitrary number of simulations in a single `slurm` script, you can even vary the resources requested arbitrarily *in the same script!*
 
 # Why is it *called* glurmo?
 
