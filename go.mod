@@ -1,4 +1,4 @@
-module github.com/nateosher/slurminator
+module github.com/nateosher/glurmo
 
 go 1.21.5
 
