@@ -20,7 +20,7 @@ Another primary goal of `glurm` is to make your simulations [DRY](https://en.wik
 
 # Why not job arrays?
 
-There's nothing that `glurmo` can do that job arrays can't. But having used both, there are a few reasons why I still prefer `glurmo`. 
+Having used both `glurmo` and job arrays, there are a few reasons why I still prefer `glurmo`. 
 
 ## Readability
 
@@ -32,7 +32,7 @@ I am almost certainly biased here, but I find `glurmo` easier to use than job ar
 
 ## Power
 
-`glurmo` uses [go templates](https://pkg.go.dev/text/template) to define `slurm` submission scripts. This means that you can even set the resources requested by the simulation according to the settings themselves. So not only can you define an arbitrary number of simulations in a single `slurm` script, you can even vary the resources requested arbitrarily *in the same script!*
+`glurmo` uses [go templates](https://pkg.go.dev/text/template) to define `slurm` submission scripts. This means that you can even set the resources requested by the simulation according to the settings themselves. So not only can you define an arbitrary number of simulations in a single `slurm` script, you can even vary the resources requested arbitrarily *in the same script!* **To my knowledge this cannot be accomplished using job arrays.**
 
 # Why is it *called* glurmo?
 
