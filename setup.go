@@ -122,7 +122,7 @@ func CheckIfEmpty(simDir string) (bool, []string, error) {
 		}
 	}
 
-	if len(simDirFiles) != 0 {
+	if len(simDirFileStrings) != 0 {
 		return false, simDirFileStrings, nil
 	}
 	return true, nil, nil
@@ -152,6 +152,9 @@ func ScriptSetup(simDir string, scriptDict map[string]string, generalSettings ma
 	for i := 0; i < nSims; i++ {
 		scriptDict["index"] = fmt.Sprint(i)
 		scriptDict["results_path"] = filepath.Join(simDir, "results", "results___"+scriptDict["index"])
+		scriptDict["path_to_script"] = filepath.Join(simDir, "scripts", "script_"+
+			scriptDict["index"]+scriptDict["script_extension"])
+		scriptDict["sim_id"] = generalSettings["id"] + "_" + scriptDict["index"]
 		var finalScriptRaw bytes.Buffer
 
 		err = scriptTemplate.Execute(&finalScriptRaw, scriptDict)
@@ -161,8 +164,7 @@ func ScriptSetup(simDir string, scriptDict map[string]string, generalSettings ma
 
 		currentScriptString := finalScriptRaw.String()
 
-		f, err := os.Create(filepath.Join(simDir, "scripts", "script_"+
-			scriptDict["index"]+scriptDict["script_extension"]))
+		f, err := os.Create(scriptDict["path_to_script"])
 		if err != nil {
 			return err
 		}
@@ -208,8 +210,10 @@ func SlurmSetup(simDir string, slurmDict map[string]string, generalSettings map[
 
 	for i := 0; i < nSims; i++ {
 		slurmDict["index"] = fmt.Sprint(i)
-		slurmDict["path_to_script"] = filepath.Join(simDir, "slurm", "slurm_"+slurmDict["index"])
-		slurmDict["job_id"] = slurmDict["id"] + "___" + slurmDict["index"]
+		slurmDict["path_to_slurm_script"] = filepath.Join(simDir, "slurm", "slurm_"+slurmDict["index"])
+		slurmDict["path_to_script"] = filepath.Join(simDir, "scripts", "script_"+
+			slurmDict["index"]+slurmDict["script_extension"])
+		slurmDict["job_id"] = generalSettings["id"] + "___" + slurmDict["index"]
 		slurmDict["output_path"] = filepath.Join(simDir, "slurm_out", "output___"+slurmDict["index"])
 		slurmDict["error_path"] = filepath.Join(simDir, "slurm_errors", "error___"+slurmDict["index"])
 
@@ -222,7 +226,7 @@ func SlurmSetup(simDir string, slurmDict map[string]string, generalSettings map[
 
 		slurmString := slurmRaw.String()
 
-		f, err := os.Create(slurmDict["path_to_script"])
+		f, err := os.Create(slurmDict["path_to_slurm_script"])
 		if err != nil {
 			return err
 		}
