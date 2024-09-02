@@ -1,6 +1,6 @@
 # glurmo
 
-`glurmo` is a command-line simulation manager built for the `slurm` workload manager. It is written in `go`. **It is currently under development, and may change in future versions.**
+`glurmo` is a command-line simulation manager built for the `slurm` workload manager. It is written in `go`. **It is currently under development, and may change in future versions.** You can find a tutorial [here](https://github.com/nateosher/glurmo-examples?tab=readme-ov-file).
 
 # Why glurmo?
 
